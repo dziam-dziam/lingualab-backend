@@ -9,4 +9,6 @@ import java.util.UUID;
 
 public interface ParticipantSessionRepository extends JpaRepository<ParticipantSession, UUID> {
     List<ParticipantSession> findAllBySurveyOrderByStartedAtDesc(Survey survey);
+
+    void deleteAllBySurvey(Survey survey);
 }

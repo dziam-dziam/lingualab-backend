@@ -6,7 +6,6 @@ import com.lingualab.api.dto.question.ReorderQuestionDto;
 import com.lingualab.api.service.QuestionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,9 +34,8 @@ public class QuestionController {
     }
 
     @DeleteMapping("/{questionId}")
-    public ResponseEntity<Void> deleteQuestion(@PathVariable UUID questionId) {
+    public void delete(@PathVariable UUID questionId) {
         questionService.deleteQuestion(questionId);
-        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/survey/{surveyId}/order")

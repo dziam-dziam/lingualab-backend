@@ -2,13 +2,19 @@ package com.lingualab.api.service;
 
 import com.lingualab.api.dto.survey.SurveyRequestDto;
 import com.lingualab.api.dto.survey.SurveyResponseDto;
+import com.lingualab.api.entity.ParticipantSession;
+import com.lingualab.api.entity.Question;
 import com.lingualab.api.entity.Survey;
 import com.lingualab.api.entity.SurveyStatus;
 import com.lingualab.api.entity.User;
 import com.lingualab.api.exception.ForbiddenOperationException;
 import com.lingualab.api.exception.ResourceNotFoundException;
 import com.lingualab.api.mapper.SurveyMapper;
+import com.lingualab.api.repository.ParticipantSessionRepository;
+import com.lingualab.api.repository.QuestionRepository;
+import com.lingualab.api.repository.ReactionResultRepository;
 import com.lingualab.api.repository.SurveyRepository;
+import com.lingualab.api.repository.SurveyResponseRepository;
 import com.lingualab.api.security.CurrentUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +30,10 @@ public class SurveyService {
     private final SurveyRepository surveyRepository;
     private final SurveyMapper surveyMapper;
     private final CurrentUserService currentUserService;
+    private final QuestionRepository questionRepository;
+    private final ParticipantSessionRepository participantSessionRepository;
+    private final SurveyResponseRepository surveyResponseRepository;
+    private final ReactionResultRepository reactionResultRepository;
 
     @Transactional
     public SurveyResponseDto createSurvey(SurveyRequestDto request) {
@@ -70,6 +80,20 @@ public class SurveyService {
     @Transactional
     public void deleteSurvey(UUID surveyId) {
         Survey survey = getOwnedSurvey(surveyId);
+        List<Question> questions = questionRepository.findAllBySurveyOrderByDisplayOrderAsc(survey);
+        List<ParticipantSession> sessions = participantSessionRepository.findAllBySurveyOrderByStartedAtDesc(survey);
+
+        if (!questions.isEmpty()) {
+            reactionResultRepository.deleteAllByQuestionIn(questions);
+            surveyResponseRepository.deleteAllByQuestionIn(questions);
+        }
+
+        if (!sessions.isEmpty()) {
+            reactionResultRepository.deleteAllBySessionIn(sessions);
+            surveyResponseRepository.deleteAllBySessionIn(sessions);
+        }
+
+        participantSessionRepository.deleteAllBySurvey(survey);
         surveyRepository.delete(survey);
     }
 

@@ -8,9 +8,9 @@ import com.lingualab.api.entity.Survey;
 import com.lingualab.api.exception.ResourceNotFoundException;
 import com.lingualab.api.mapper.QuestionMapper;
 import com.lingualab.api.repository.QuestionRepository;
-import com.lingualab.api.repository.SurveyRepository;
+import com.lingualab.api.repository.ReactionResultRepository;
+import com.lingualab.api.repository.SurveyResponseRepository;
 import com.lingualab.api.validator.SurveyValidator;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,8 +27,8 @@ public class QuestionService {
     private final SurveyService surveyService;
     private final QuestionMapper questionMapper;
     private final SurveyValidator surveyValidator;
-    private final SurveyRepository surveyRepository; // if needed for updatedAt persist
-
+    private final SurveyResponseRepository surveyResponseRepository;
+    private final ReactionResultRepository reactionResultRepository;
 
     @Transactional
     public QuestionResponseDto addQuestion(UUID surveyId, QuestionRequestDto request) {
@@ -56,18 +56,12 @@ public class QuestionService {
     @Transactional
     public void deleteQuestion(UUID questionId) {
         Question question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new EntityNotFoundException("Question not found"));
-
-        // verify ownership: will throw if not owned by current user
-        UUID surveyId = question.getSurvey().getId();
-        Survey owned = surveyService.getOwnedSurvey(surveyId);
-
-        // remove the question
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
+        Survey survey = surveyService.getOwnedSurvey(question.getSurvey().getId());
+        reactionResultRepository.deleteAllByQuestion(question);
+        surveyResponseRepository.deleteAllByQuestion(question);
         questionRepository.delete(question);
-
-        // update survey.updatedAt
-        owned.setUpdatedAt(Instant.now());
-        surveyRepository.save(owned);
+        survey.setUpdatedAt(Instant.now());
     }
 
     @Transactional

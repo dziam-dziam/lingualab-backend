@@ -1,6 +1,7 @@
 package com.lingualab.api.repository;
 
 import com.lingualab.api.entity.ParticipantSession;
+import com.lingualab.api.entity.Question;
 import com.lingualab.api.entity.SurveyResponse;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -9,4 +10,10 @@ import java.util.UUID;
 
 public interface SurveyResponseRepository extends JpaRepository<SurveyResponse, UUID> {
     List<SurveyResponse> findAllBySession(ParticipantSession session);
+
+    void deleteAllByQuestion(Question question);
+
+    void deleteAllByQuestionIn(List<Question> questions);
+
+    void deleteAllBySessionIn(List<ParticipantSession> sessions);
 }
