@@ -8,7 +8,9 @@ import com.lingualab.api.entity.Survey;
 import com.lingualab.api.exception.ResourceNotFoundException;
 import com.lingualab.api.mapper.QuestionMapper;
 import com.lingualab.api.repository.QuestionRepository;
+import com.lingualab.api.repository.SurveyRepository;
 import com.lingualab.api.validator.SurveyValidator;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,8 @@ public class QuestionService {
     private final SurveyService surveyService;
     private final QuestionMapper questionMapper;
     private final SurveyValidator surveyValidator;
+    private final SurveyRepository surveyRepository; // if needed for updatedAt persist
+
 
     @Transactional
     public QuestionResponseDto addQuestion(UUID surveyId, QuestionRequestDto request) {
@@ -47,6 +51,23 @@ public class QuestionService {
         surveyValidator.validateQuestion(question);
         question.getSurvey().setUpdatedAt(Instant.now());
         return questionMapper.mapEntityToResponseDto(questionRepository.save(question));
+    }
+
+    @Transactional
+    public void deleteQuestion(UUID questionId) {
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new EntityNotFoundException("Question not found"));
+
+        // verify ownership: will throw if not owned by current user
+        UUID surveyId = question.getSurvey().getId();
+        Survey owned = surveyService.getOwnedSurvey(surveyId);
+
+        // remove the question
+        questionRepository.delete(question);
+
+        // update survey.updatedAt
+        owned.setUpdatedAt(Instant.now());
+        surveyRepository.save(owned);
     }
 
     @Transactional
